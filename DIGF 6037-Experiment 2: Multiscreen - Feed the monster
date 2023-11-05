@@ -1,0 +1,251 @@
+let video;
+let circleX, circleY;
+let circleSize = 80;
+let velocityX = 0;
+let velocityY = 0;
+let acceleration = 0.01; // Acceleration due to gravity
+let friction = 0.01; // Friction to simulate rolling (reduce it slightly)
+let barrierY; // Y position of the barrier
+let barrierHeight = 2; // Height of the barrier
+let barrierWidth = 200; // Width of the barrier
+let gapStart = 125 + circleSize / 2;
+let gapEnd = 225 - circleSize / 2;
+let mazes = [];
+let currentMazeIndex = 0; // Start with the first maze
+let exitX;
+let exitY;
+let HeadX;
+let HeadY;
+let barrierXStart;
+let barrierRotation; // Random rotation angle for the barrierondycn
+const barriers = [];
+let videoPlay = 0;
+let gameEnded = false;
+
+
+function preload() {
+  video = createImg("ezgif-5-c75a1926c4.gif");
+  video.hide();
+}
+
+function setup() {
+  createCanvas(windowWidth, windowHeight);
+  // video = loadImage("Winner.gif");
+  // video = createVideo("MotionWinnerCompressed.mp4");
+  // video.size(windowWidth, windowHeight);
+  // video.volume(1);
+  // video.loop();
+  // video.hide();
+  video.position(windowWidth/2-200, windowHeight/2 -300);
+  video.size(windowWidth, windowHeight);
+  textSize(24);
+
+  // Request permissions if on iOS
+  checkSensorPermissions();
+
+  circleX = width / 2;
+  circleY = height / 2;
+  barrierY = height / 2; // Set the barrier to the middle of the canvas
+  barrierX = (width - barrierWidth) / 2;
+  exitX = width / 2;
+  exitY = height / 4;
+  HeadX = circleX;
+  HeadY = circleX;
+
+  // random HeadX & HeadY
+  exitX = random(20, windowWidth - 20);
+  exitY = random(20, windowHeight - 20);
+
+  barrierXStart = random(10, windowWidth - barrierWidth);
+  barrierY = random(barrierHeight, windowHeight - barrierHeight);
+  barrierRotation = random(TWO_PI); // Random rotation angle in radians
+
+  if (window.DeviceOrientationEvent) {
+    window.addEventListener("deviceorientation", function (event) {
+      alphaValue = event.alpha;
+      betaValue = event.beta;
+      gammaValue = event.gamma;
+    });
+  } else {
+    alert("Your device does not support the DeviceOrientationEvent API.");
+    initializeMazes();
+  }
+
+  function initializeMazes() {
+    // Define 6 mazes with varying barrier and gap positions
+    mazes.push({
+      barrierXStart: (width - barrierWidth) / 2,
+      gapStart: 125 + circleSize / 2,
+      gapEnd: 225 - circleSize / 2,
+    });
+    mazes.push({
+      barrierXStart: (width - barrierWidth) / 4,
+      gapStart: 75 + circleSize / 2,
+      gapEnd: 175 - circleSize / 1,
+    });
+    // ... [Define 4 more mazes similarly]
+  }
+}
+function drawSmileyFace(x, y, size) {
+  // Draw a smiley face on the ball
+  fill(0);
+  stroke(0);
+  strokeWeight(0);
+
+  // Head (circle)
+  ellipse(x, y, size, size);
+
+  // Eyes (circles)
+  fill(255);
+  let eyeSize = size * 0.1;
+  ellipse(x + 2 - size * 0.1, y + 3 - size * 0.15, eyeSize, eyeSize);
+  ellipse(x + size * 0.1, y - size * 0.1, eyeSize, eyeSize);
+
+  // Reset stroke properties
+  stroke(0);
+  strokeWeight(1);
+  fill(0);
+}
+
+function draw() {
+  if (!gameEnded) {
+    background(255, 2);
+    ellipse(exitX, exitY, 10);
+
+    // Update the circle's position and velocity based on gravity
+    velocityX += acceleration;
+    velocityY += acceleration;
+
+    // Adjust the circle's position based on device tilt
+    const tiltX = rotationY; // Use rotationY for left/right tilt
+    const tiltY = rotationX; // Use rotationX for up/down tilt
+    circleX += tiltX * 0.5; // Adjust position based on tilt
+    circleY += tiltY * 0.5;
+
+    // Apply the changes
+    circleX += velocityX;
+    circleY += velocityY;
+
+    // Check for collisions with canvas boundaries and apply bounce
+    if (circleX - circleSize / 2 <= 0 || circleX + circleSize / 2 >= width) {
+      velocityX *= -1;
+      circleX = constrain(circleX, circleSize / 2, width - circleSize / 2); // Constrain again after adjusting velocity
+    }
+
+    // Check if the ball is at the top edge
+    if (circleY - circleSize / 2 <= 0) {
+      velocityY *= -1;
+      circleY = constrain(circleY, circleSize / 2, height - circleSize / 2); // Constrain again after adjusting velocity
+    }
+    // Check if the ball is at the bottom edge AND outside the gap
+    if (
+      circleY + circleSize / 2 >= height &&
+      (circleX - circleSize / 2 < gapStart || circleX + circleSize / 2 > gapEnd)
+    ) {
+      velocityY *= -1;
+      circleY = constrain(circleY, circleSize / 2, height - circleSize / 2);
+    }
+
+    // Draw the barrier
+    fill(50); // Gray color
+    let barrierXStart = (width - barrierWidth) / 2;
+    rect(barrierXStart, barrierY, barrierWidth, barrierHeight); // Drawing the barrier
+
+    // Calculate boundaries for ball and barrier
+    let ballLeft = circleX - circleSize / 2;
+    let ballRight = circleX + circleSize / 2;
+    let ballTop = circleY - circleSize / 2;
+    let ballBottom = circleY + circleSize / 2;
+
+    let barrierLeft = barrierXStart;
+    let barrierRight = barrierXStart + barrierWidth;
+    let barrierTop = barrierY;
+    let barrierBottom = barrierY + barrierHeight;
+
+    // Check for collisions with the barrier
+    let collidesHorizontally =
+      ballRight > barrierLeft && ballLeft < barrierRight;
+    let collidesVertically = ballBottom > barrierTop && ballTop < barrierBottom;
+
+    if (collidesHorizontally && collidesVertically) {
+      // Ball hit the barrier, reverse the vertical velocity
+      velocityY *= -1;
+      velocityX *= -1;
+
+      // Adjust ball position to be outside the barrier (to avoid being "stuck" inside)
+      if (circleY < barrierY) {
+        circleY = barrierTop - circleSize / 2;
+      } else {
+        circleY = barrierBottom + circleSize / 2;
+      }
+
+      // Apply friction if ball touches the barrier
+      velocityX *= friction;
+      velocityY *= friction;
+    }
+
+    // Draw the circle with a smiley face
+    drawSmileyFace(circleX, circleY, circleSize);
+
+    // MAZE
+    stroke("black");
+    strokeWeight(15);
+    line(0, 0, 0, height);
+    line(0, 0, width, 0);
+    line(width, 0, width, height);
+    line(0, height, 120, height);
+    line(0, height, width, height);
+    strokeWeight(5);
+
+    HeadX = circleX;
+    HeadY = circleY;
+
+    console.log("HeadX: " + HeadX + ", HeadY: " + HeadY);
+
+    Ending();
+  }
+  if (videoPlay === 1) {
+    clear();
+    background(220);
+    // let img = video.get();
+    // image(video, 0, 0);
+  }
+}
+
+// function touchStarted() {
+//   // Go to the next maze
+//   currentMazeIndex = (currentMazeIndex + 1) % mazes.length;
+
+//   // Reset ball to start position for the new maze
+//   circleX = width / 2;
+//   circleY = height / 2;
+//   velocityX = 0;
+//   velocityY = 0;
+
+//   loop(); // Restart the draw loop
+
+//   return false; // To prevent any default action for this event
+// }
+
+function Ending() {
+  const tolerance = 20; // Set a tolerance range indicating how much the coordinates can differ
+  const withinToleranceX = abs(HeadX - exitX) <= tolerance;
+  const withinToleranceY = abs(HeadY - exitY) <= tolerance;
+
+  if (withinToleranceX && withinToleranceY) {
+    gameEnded = true;
+    // video = createVideo(["MotionWinnerCompressed.mp4"], () => {
+    //   video.play();
+    // }); // Replace with your video file path
+    if (videoPlay !== 1) {
+      // clear();
+      // video.position(0, 0); // Set the video's position
+      // video.size(100, 100); // Set the video size to canvas size
+      video.show();
+      video.play(); // Start playing the video once
+      // video.width = window.innerWidth;
+      // video.height = window.innerHeight;
+      videoPlay = 1;
+    }
+  }
+}
