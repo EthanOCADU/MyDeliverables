@@ -22,7 +22,7 @@ const barriers = [];
 let videoPlay = 0;
 let gameEnded = false;
 
-
+//Thx Juan!!
 function preload() {
   video = createImg("ezgif-5-c75a1926c4.gif");
   video.hide();
