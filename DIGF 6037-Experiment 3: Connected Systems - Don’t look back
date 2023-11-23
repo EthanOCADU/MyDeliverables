@@ -1,3 +1,12 @@
+/* code is a combination of Knight rider Open CV and Servo control. The code also uses example of MiniM library code by Damien Di Fede and Anderson Mills. 
+Code Refactored with ChatGPT
+
+This code has been refactored with the assistance of ChatGPT, a language model based on the GPT-3.5 architecture. It is designed for processing [Specify the type of processing, e.g., data, images, etc.].
+
+GPT Architecture: GPT-3.5
+ChatGPT Version Date: January 2023 
+*/
+
 import cc.arduino.*;
 import processing.serial.*;
 import gab.opencv.*;
